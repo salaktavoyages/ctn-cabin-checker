@@ -167,11 +167,13 @@ def verifier_ctn():
         time.sleep(1)
 
         # 5. PASSAGER + NEXT
-        driver.execute_script("""
-            const row = document.querySelector('booking-row-amount');
-            row?.querySelector('span[click\\.delegate*="onAddAmount"]')?.click();
-        """)
-        time.sleep(1)
+driver.execute_script("""
+    const rows = Array.from(document.querySelectorAll('booking-row-amount'));
+    if (rows.length > 0) {
+        const plus = rows[0].querySelector('span');
+        if (plus) plus.click();
+    }
+""")
 
         for _ in range(4):
             driver.execute_script("""
