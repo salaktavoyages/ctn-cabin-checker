@@ -9,11 +9,11 @@ from selenium.webdriver.chrome.options import Options
 
 # --- CONFIGURATION (Synchronisée) ---
 URL_CTN = "https://tunisiaferries.ctn.com.tn/#/book"
-DATE_CIBLE = "17/02/2026"
-JOUR_CIBLE = "17"
+DATE_CIBLE = "13/02/2026"
+JOUR_CIBLE = "13"
 MOIS_EN = "Feb"
 ANNEE_CIBLE = "2026"
-VILLE_ARRIVEE = "Marseille"
+VILLE_ARRIVEE = "GENES"
 PAYS_DEP = "TUN"
 
 NOM_CABINE_CIBLE_1 = "Cabine avec Sanitaires Privés- 4 lits- avec Hublot"
