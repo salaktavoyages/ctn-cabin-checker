@@ -1,19 +1,25 @@
 # -*- coding: utf-8 -*-
+
 import time
+import os
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
 
-# ================= CONFIGURATION =================
+# ==================================================
+# CONFIGURATION
+# ==================================================
+
 URL_CTN = "https://tunisiaferries.ctn.com.tn/#/book"
+
 DATE_CIBLE = "01/07/2026"
 JOUR_CIBLE = "01"
 MOIS_EN = "Jul"
 ANNEE_CIBLE = "2026"
+
 VILLE_ARRIVEE = "GENES"
 PAYS_DEP = "TUN"
 
@@ -21,14 +27,16 @@ NOM_CABINE_CIBLE_1 = "Cabine avec Sanitaires Privés- 4 lits- avec Hublot"
 NOM_CABINE_CIBLE_2 = "Cabine avec Sanitaires Privé-4 lits - Sans Hublot"
 
 EMAIL_EXPEDITEUR = "salakta.voyages@gmail.com"
-MOT_DE_PASSE_EMAIL = None  # FROM GITHUB SECRET
 EMAILS_DESTINATAIRES = [
     "salakta.voyages@gmail.com",
     "benattiasaif88@gmail.com",
     "ajmi200005@gmail.com"
 ]
 
-# ================= DRIVER =================
+# ==================================================
+# SELENIUM DRIVER
+# ==================================================
+
 def configurer_driver():
     options = Options()
     options.add_argument("--headless=new")
@@ -38,7 +46,10 @@ def configurer_driver():
     options.add_argument("--lang=fr-FR")
     return webdriver.Chrome(options=options)
 
-# ================= MAIN CHECK =================
+# ==================================================
+# CTN CHECK
+# ==================================================
+
 def verifier_ctn():
     driver = configurer_driver()
     try:
@@ -46,110 +57,150 @@ def verifier_ctn():
         driver.get(URL_CTN)
         time.sleep(3)
 
-        # ALLER SIMPLE
+        # 1️⃣ ALLER SIMPLE
         driver.execute_script("""
-            const el = [...document.querySelectorAll('label,span')]
-            .find(e => e.innerText.includes('Aller simple') || e.innerText.includes('One way'));
-            if(el) el.click();
+            const el = Array.from(document.querySelectorAll('label,span'))
+                .find(e => e.innerText.includes('Aller simple') || e.innerText.includes('One way'));
+            if (el) el.click();
         """)
         time.sleep(1)
 
-        # PAYS
+        # 2️⃣ PAYS
         ok = driver.execute_script("""
             const input = document.querySelector('input[value="TUN"]');
-            if(input){ input.click(); return true;}
+            if (input) {
+                input.click();
+                return true;
+            }
             return false;
         """)
         if not ok:
             print("❌ Pays non trouvé")
             return False
 
-        # DATE
-        driver.execute_script("""
-            [...document.querySelectorAll('div.bookit-selectable')]
-            .find(d => d.innerText.trim() === '2026')?.click();
-        """)
         time.sleep(1)
 
+        # 3️⃣ DATE - ANNÉE
         driver.execute_script("""
-            [...document.querySelectorAll('div.bookit-selectable')]
-            .find(d => d.innerText.trim() === 'Aug')?.click();
-        """)
+            const y = Array.from(document.querySelectorAll('div.bookit-selectable'))
+                .find(d => d.innerText.trim() === arguments[0]);
+            if (y) y.click();
+        """, ANNEE_CIBLE)
         time.sleep(1)
 
+        # 3️⃣ DATE - MOIS
         driver.execute_script("""
-            [...document.querySelectorAll('td.bookit-calendar-selectable div')]
-            .find(d => d.innerText.trim() === '28')?.click();
-        """)
+            const m = Array.from(document.querySelectorAll('div.bookit-selectable'))
+                .find(d => d.innerText.trim() === arguments[0]);
+            if (m) m.click();
+        """, MOIS_EN)
+        time.sleep(1)
+
+        # 3️⃣ DATE - JOUR
+        driver.execute_script("""
+            const d = Array.from(document.querySelectorAll('td.bookit-calendar-selectable div'))
+                .find(x => x.innerText.trim() === arguments[0]);
+            if (d) d.click();
+        """, JOUR_CIBLE)
         time.sleep(2)
 
-        # TRAJET
-        ok = driver.execute_script(f"""
-            const l = [...document.querySelectorAll('label')]
-            .find(x => x.innerText.includes('{DATE_CIBLE}') &&
-                      x.innerText.toLowerCase().includes('{VILLE_ARRIVEE.lower()}'));
-            if(l){ l.querySelector('input')?.click(); return true;}
+        # 4️⃣ TRAJET
+        ok = driver.execute_script("""
+            const labels = Array.from(document.querySelectorAll('label'));
+            const target = labels.find(l =>
+                l.innerText.includes(arguments[0]) &&
+                l.innerText.toLowerCase().includes(arguments[1])
+            );
+
+            if (target) {
+                const radio = target.querySelector('input[type="radio"]');
+                if (radio) {
+                    radio.click();
+                    return true;
+                }
+            }
             return false;
-        """)
+        """, DATE_CIBLE, VILLE_ARRIVEE.lower())
+
         if not ok:
             print("❌ Trajet non trouvé")
             return False
 
-        # NEXT buttons
+        time.sleep(1)
+
+        # 5️⃣ NEXT BUTTONS
         for _ in range(4):
             driver.execute_script("""
-                [...document.querySelectorAll('button')]
-                .find(b => b.innerText.includes('NEXT') || b.innerText.includes('SUIVANT'))?.click();
+                const b = Array.from(document.querySelectorAll('button'))
+                    .find(x => x.innerText.includes('NEXT') || x.innerText.includes('SUIVANT'));
+                if (b) b.click();
             """)
             time.sleep(1)
 
-        # CABINE CHECK
-        resultat = driver.execute_script(f"""
-            const cibles = ["{NOM_CABINE_CIBLE_1}", "{NOM_CABINE_CIBLE_2}"];
-            for(const nom of cibles){
-                const bloc = [...document.querySelectorAll('cabin-resources')]
-                .find(b => b.innerText.includes(nom));
-                if(bloc && bloc.innerText.includes('Disponible')){
+        # 6️⃣ CABINE CHECK
+        cabine = driver.execute_script("""
+            const cibles = [arguments[0], arguments[1]];
+            const blocs = Array.from(document.querySelectorAll('cabin-resources'));
+
+            for (const nom of cibles) {
+                const bloc = blocs.find(b => b.innerText.includes(nom));
+                if (bloc && bloc.innerText.toLowerCase().includes('disponible')) {
                     return nom;
                 }
             }
             return null;
-        """)
+        """, NOM_CABINE_CIBLE_1, NOM_CABINE_CIBLE_2)
 
-        if resultat:
-            print(f"🟢 CABINE DISPONIBLE: {resultat}")
-            return resultat
+        if cabine:
+            print("🟢 CABINE DISPONIBLE :", cabine)
+            return cabine
 
         print("🔴 Aucune cabine disponible")
+        return False
+
+    except Exception as e:
+        print("⚠️ ERREUR :", e)
         return False
 
     finally:
         driver.quit()
 
-# ================= EMAIL =================
+# ==================================================
+# EMAIL ALERT
+# ==================================================
+
 def envoyer_email(cabine):
+    password = os.environ.get("EMAIL_PASSWORD")
+    if not password:
+        print("❌ EMAIL_PASSWORD secret missing")
+        return
+
     server = smtplib.SMTP("smtp.gmail.com", 587)
     server.starttls()
-    server.login(EMAIL_EXPEDITEUR, MOT_DE_PASSE_EMAIL)
+    server.login(EMAIL_EXPEDITEUR, password)
 
     for dest in EMAILS_DESTINATAIRES:
         msg = MIMEMultipart()
         msg["From"] = EMAIL_EXPEDITEUR
         msg["To"] = dest
         msg["Subject"] = "🚢 CTN – CABINE DISPONIBLE"
-        msg.attach(MIMEText(
-            f"Cabine disponible : {cabine}\nDate : {DATE_CIBLE}\n{URL_CTN}",
-            "plain"
-        ))
+
+        body = f"""
+Cabine disponible : {cabine}
+Date : {DATE_CIBLE}
+Lien : {URL_CTN}
+"""
+        msg.attach(MIMEText(body, "plain"))
         server.sendmail(EMAIL_EXPEDITEUR, dest, msg.as_string())
+        print("📧 Email envoyé à", dest)
 
     server.quit()
 
-# ================= RUN =================
-if __name__ == "__main__":
-    import os
-    MOT_DE_PASSE_EMAIL = os.environ.get("EMAIL_PASSWORD")
+# ==================================================
+# MAIN
+# ==================================================
 
+if __name__ == "__main__":
     cabine = verifier_ctn()
     if cabine:
         envoyer_email(cabine)
