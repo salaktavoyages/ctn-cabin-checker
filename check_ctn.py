@@ -45,38 +45,48 @@ def configurer_driver():
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--window-size=1920,1080")
-    chrome_options.add_argument("--lang=fr-FR")
+    # Ajout d'un User-Agent réel pour éviter d'être bloqué
+    chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
     return webdriver.Chrome(options=chrome_options)
-
-
-# =========================================================
-# LOGIQUE CTN
-# =========================================================
 
 def verifier_ctn():
     driver = None
     try:
-        print(f"[{time.strftime('%H:%M:%S')}] Démarrage vérification CTN")
         driver = configurer_driver()
         driver.get(URL_CTN)
-        time.sleep(4)
+        # Augmenter le temps d'attente initial pour GitHub Actions (plus lent qu'un PC local)
+        time.sleep(8) 
+
+        # --- ÉTAPE CRUCIALE : Capture d'écran pour debug ---
+        # Si ça échoue, vous pourrez voir ce que le script voit réellement
+        # driver.save_screenshot("debug_ctn.png") 
 
         # 1️⃣ ALLER SIMPLE
         driver.execute_script("""
-            Array.from(document.querySelectorAll('label, span'))
-              .find(e => e.innerText.includes('Aller simple') || e.innerText.includes('One way'))
-              ?.click();
+            const el = Array.from(document.querySelectorAll('label, span, div'))
+              .find(e => e.innerText.trim() === 'Aller simple' || e.innerText.trim() === 'One way');
+            if (el) el.click();
         """)
-        time.sleep(1)
+        time.sleep(2)
 
-        # 2️⃣ PAYS
+        # 2️⃣ PAYS (Utilisation de PAYS_DEP)
+        # On essaie de cliquer directement sur l'élément qui contient la valeur
         ok_pays = driver.execute_script(f"""
-            const input = document.querySelector('input[value="{PAYS_DEP}"]');
-            if (input) {{ input.click(); return true; }}
+            const selector = 'input[value="{PAYS_DEP}"]';
+            const input = document.querySelector(selector);
+            if (input) {{ 
+                input.click(); 
+                return true; 
+            }}
+            // Tentative alternative par le texte si l'input est masqué
+            const label = Array.from(document.querySelectorAll('label')).find(l => l.innerText.includes('{PAYS_DEP}'));
+            if (label) {{ label.click(); return true; }}
             return false;
         """)
+        
         if not ok_pays:
-            print(f"❌ Pays {PAYS_DEP} non trouvé")
+            print(f"❌ Pays {PAYS_DEP} non trouvé. Vérifiez si le code est bien 'FRA' ou 'ITA' ou 'TUN'")
+            driver.save_screenshot("erreur_pays.png")
             return False
         time.sleep(1)
 
