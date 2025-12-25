@@ -20,8 +20,7 @@ JOUR_CIBLE = "01"
 MOIS_EN = "Jul"
 ANNEE_CIBLE = "2026"
 
-VILLE_DEPART = "TUNIS"
-VILLE_ARRIVEE = "GENES"
+VILLE_DEPART = "TUNIS - GENES"
 PAYS_DEP = "TUN"
 
 NOM_CABINE_CIBLE_1 = "Cabine avec Sanitaires Privés- 4 lits- avec Hublot"
@@ -104,29 +103,17 @@ def verifier_ctn():
         """, JOUR_CIBLE)
         time.sleep(2)
 
-        # 4️⃣ TRAJET (VILLE DEPART + VILLE ARRIVEE + DATE)
+        # 4️⃣ TRAJET (VILLE DEPART + DATE)
         ok = driver.execute_script("""
-            function normalize(txt) {
-                return txt
-                    .toLowerCase()
-                    .replace(/\\s+/g, ' ')
-                    .replace('é','e')
-                    .replace('è','e')
-                    .replace('à','a')
-                    .replace('ù','u');
-            }
-
+           
             const dateCible = arguments[0];
-            const villeDep = normalize(arguments[1]);
-            const villeArr = normalize(arguments[2]);
-
+            const villeDep =arguments[1];
             const labels = Array.from(document.querySelectorAll('label'));
 
             const target = labels.find(l => {
-                const text = normalize(l.innerText);
+                const text =l.innerText;
                 return text.includes(dateCible)
-                    && text.includes(villeDep)
-                    && text.includes(villeArr);
+                    && text.includes(villeDep);
             });
 
             if (target) {
