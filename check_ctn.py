@@ -24,18 +24,13 @@ VILLE_DEPART = "TUNIS"
 VILLE_ARRIVEE = "GENES"
 PAYS_DEP = "TUN"
 
-NOM_CABINE_CIBLE_1 = "Cabine avec Sanitaires Privés- 4 lits- avec Hublot"
-NOM_CABINE_CIBLE_2 = "Cabine avec Sanitaires Privé-4 lits - Sans Hublot"
-
 EMAIL_EXPEDITEUR = "salakta.voyages@gmail.com"
 EMAILS_DESTINATAIRES = [
-    "salakta.voyages@gmail.com",
-    "benattiasaif88@gmail.com",
-    "ajmi200005@gmail.com"
+    "salakta.voyages@gmail.com"
 ]
 
 # ==================================================
-# SELENIUM DRIVER
+# DRIVER
 # ==================================================
 
 def configurer_driver():
@@ -44,11 +39,10 @@ def configurer_driver():
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--window-size=1920,1080")
-    options.add_argument("--lang=fr-FR")
     return webdriver.Chrome(options=options)
 
 # ==================================================
-# CTN CHECK
+# MAIN CHECK
 # ==================================================
 
 def verifier_ctn():
@@ -56,130 +50,84 @@ def verifier_ctn():
     try:
         print("🚢 CTN check started")
         driver.get(URL_CTN)
-        time.sleep(3)
+        time.sleep(4)
 
-        # 1️⃣ ALLER SIMPLE
+        # ALLER SIMPLE
         driver.execute_script("""
-            const el = Array.from(document.querySelectorAll('label,span'))
-                .find(e => e.innerText.includes('Aller simple') || e.innerText.includes('One way'));
-            if (el) el.click();
+            [...document.querySelectorAll('label,span')]
+            .find(e => e.innerText.includes('Aller simple') || e.innerText.includes('One way'))
+            ?.click();
         """)
         time.sleep(1)
 
-        # 2️⃣ PAYS DE DÉPART
-        ok = driver.execute_script("""
-            const input = document.querySelector('input[value="TUN"]');
-            if (input) {
-                input.click();
-                return true;
-            }
-            return false;
+        # PAYS DE DEPART
+        driver.execute_script("""
+            document.querySelector('input[value="TUN"]')?.click();
         """)
-        if not ok:
-            print("❌ Pays de départ non trouvé")
-            return False
-
         time.sleep(1)
 
-        # 3️⃣ DATE – ANNÉE
+        # ANNEE
         driver.execute_script("""
-            const y = Array.from(document.querySelectorAll('div.bookit-selectable'))
-                .find(d => d.innerText.trim() === arguments[0]);
-            if (y) y.click();
+            [...document.querySelectorAll('div.bookit-selectable')]
+            .find(e => e.innerText.trim() === arguments[0])
+            ?.click();
         """, ANNEE_CIBLE)
         time.sleep(1)
 
-        # 3️⃣ DATE – MOIS
+        # MOIS
         driver.execute_script("""
-            const m = Array.from(document.querySelectorAll('div.bookit-selectable'))
-                .find(d => d.innerText.trim() === arguments[0]);
-            if (m) m.click();
+            [...document.querySelectorAll('div.bookit-selectable')]
+            .find(e => e.innerText.trim() === arguments[0])
+            ?.click();
         """, MOIS_EN)
         time.sleep(1)
 
-        # 3️⃣ DATE – JOUR
+        # JOUR
         driver.execute_script("""
-            const d = Array.from(document.querySelectorAll('td.bookit-calendar-selectable div'))
-                .find(x => x.innerText.trim() === arguments[0]);
-            if (d) d.click();
+            [...document.querySelectorAll('td.bookit-calendar-selectable div')]
+            .find(e => e.innerText.trim() === arguments[0])
+            ?.click();
         """, JOUR_CIBLE)
         time.sleep(2)
 
-        # 4️⃣ TRAJET (MATCHES EXACT DOM STRUCTURE)
+        # ==================================================
+        # TRAJET CHECK (FIXED & ROBUST)
+        # ==================================================
+
         ok = driver.execute_script("""
-            function normalize(txt) {
-                return txt
-                    .toLowerCase()
-                    .replace(/\\s+/g, ' ')
-                    .replace('é','e')
-                    .replace('è','e')
-                    .replace('à','a')
+            function normalize(t) {
+                return t.toLowerCase()
+                    .replace(/\\s+/g,' ')
+                    .replace(/[éèê]/g,'e')
+                    .replace(/[àâ]/g,'a')
                     .replace('–','-');
             }
 
-            const dateCible = arguments[0];
-            const villeDep = normalize(arguments[1]);
-            const villeArr = normalize(arguments[2]);
+            const villeDep = normalize(arguments[0]);
+            const villeArr = normalize(arguments[1]);
+            const dateCible = arguments[2];
 
-            const labels = Array.from(document.querySelectorAll('label'));
+            const labels = [...document.querySelectorAll('label')];
 
-            const target = labels.find(label => {
-                const routeDiv = label.querySelector('div.col-1 div');
-                if (!routeDiv) return false;
+            for (const l of labels) {
+                const txt = normalize(l.innerText);
+                if (txt.includes(villeDep)
+                    && txt.includes(villeArr)
+                    && txt.includes(dateCible)) {
 
-                const routeText = normalize(routeDiv.innerText);
-                const fullText = normalize(label.innerText);
-
-                return routeText.includes(villeDep)
-                    && routeText.includes(villeArr)
-                    && fullText.includes(dateCible);
-            });
-
-            if (target) {
-                const radio = target.querySelector('input[type="radio"]');
-                if (radio) {
-                    radio.click();
+                    l.querySelector('input[type=radio]')?.click();
                     return true;
                 }
             }
             return false;
-        """, DATE_CIBLE, VILLE_DEPART, VILLE_ARRIVEE)
+        """, VILLE_DEPART, VILLE_ARRIVEE, DATE_CIBLE)
 
         if not ok:
             print(f"❌ Trajet {VILLE_DEPART} → {VILLE_ARRIVEE} non trouvé pour {DATE_CIBLE}")
             return False
 
-        time.sleep(1)
-
-        # 5️⃣ NEXT BUTTONS
-        for _ in range(4):
-            driver.execute_script("""
-                const b = Array.from(document.querySelectorAll('button'))
-                    .find(x => x.innerText.includes('NEXT') || x.innerText.includes('SUIVANT'));
-                if (b) b.click();
-            """)
-            time.sleep(1)
-
-        # 6️⃣ CABINE CHECK
-        cabine = driver.execute_script("""
-            const cibles = [arguments[0], arguments[1]];
-            const blocs = Array.from(document.querySelectorAll('cabin-resources'));
-
-            for (const nom of cibles) {
-                const bloc = blocs.find(b => b.innerText.includes(nom));
-                if (bloc && bloc.innerText.toLowerCase().includes('disponible')) {
-                    return nom;
-                }
-            }
-            return null;
-        """, NOM_CABINE_CIBLE_1, NOM_CABINE_CIBLE_2)
-
-        if cabine:
-            print("🟢 CABINE DISPONIBLE :", cabine)
-            return cabine
-
-        print("🔴 Aucune cabine disponible")
-        return False
+        print("✅ Trajet trouvé et sélectionné")
+        return True
 
     except Exception as e:
         print("⚠️ ERREUR :", e)
@@ -189,40 +137,8 @@ def verifier_ctn():
         driver.quit()
 
 # ==================================================
-# EMAIL ALERT
-# ==================================================
-
-def envoyer_email(cabine):
-    password = os.environ.get("EMAIL_PASSWORD")
-    if not password:
-        print("❌ EMAIL_PASSWORD secret missing")
-        return
-
-    server = smtplib.SMTP("smtp.gmail.com", 587)
-    server.starttls()
-    server.login(EMAIL_EXPEDITEUR, password)
-
-    for dest in EMAILS_DESTINATAIRES:
-        msg = MIMEMultipart()
-        msg["From"] = EMAIL_EXPEDITEUR
-        msg["To"] = dest
-        msg["Subject"] = "🚢 CTN – CABINE DISPONIBLE"
-
-        body = f"""Cabine disponible : {cabine}
-Date : {DATE_CIBLE}
-Lien : {URL_CTN}
-"""
-        msg.attach(MIMEText(body, "plain"))
-        server.sendmail(EMAIL_EXPEDITEUR, dest, msg.as_string())
-        print("📧 Email envoyé à", dest)
-
-    server.quit()
-
-# ==================================================
 # MAIN
 # ==================================================
 
 if __name__ == "__main__":
-    cabine = verifier_ctn()
-    if cabine:
-        envoyer_email(cabine)
+    verifier_ctn()
