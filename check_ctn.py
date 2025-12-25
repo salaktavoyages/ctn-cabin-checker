@@ -20,7 +20,7 @@ JOUR_CIBLE = "01"
 MOIS_EN = "Jul"
 ANNEE_CIBLE = "2026"
 
-VILLE_DEPART = "TUNIS - GENES"
+VILLE_ARRIVEE = "TUNIS - GENES"
 PAYS_DEP = "TUN"
 
 NOM_CABINE_CIBLE_1 = "Cabine avec Sanitaires Privés- 4 lits- avec Hublot"
@@ -65,7 +65,7 @@ def verifier_ctn():
         """)
         time.sleep(1)
 
-        # 2️⃣ PAYS DE DÉPART
+        # 2️⃣ PAYS
         ok = driver.execute_script("""
             const input = document.querySelector('input[value="TUN"]');
             if (input) {
@@ -75,8 +75,9 @@ def verifier_ctn():
             return false;
         """)
         if not ok:
-            print("❌ Pays de départ non trouvé")
+            print("❌ Pays non trouvé")
             return False
+
         time.sleep(1)
 
         # 3️⃣ DATE - ANNÉE
@@ -103,18 +104,13 @@ def verifier_ctn():
         """, JOUR_CIBLE)
         time.sleep(2)
 
-        # 4️⃣ TRAJET (VILLE DEPART + DATE)
+        # 4️⃣ TRAJET
         ok = driver.execute_script("""
-           
-            const dateCible = arguments[0];
-            const villeDep =arguments[1];
             const labels = Array.from(document.querySelectorAll('label'));
-
-            const target = labels.find(l => {
-                const text =l.innerText;
-                return text.includes(dateCible)
-                    && text.includes(villeDep);
-            });
+            const target = labels.find(l =>
+                l.innerText.includes(arguments[0]) &&
+                l.innerText.toLowerCase().includes(arguments[1])
+            );
 
             if (target) {
                 const radio = target.querySelector('input[type="radio"]');
@@ -124,11 +120,12 @@ def verifier_ctn():
                 }
             }
             return false;
-        """, DATE_CIBLE, VILLE_DEPART, VILLE_ARRIVEE)
+        """, DATE_CIBLE, VILLE_ARRIVEE.lower())
 
         if not ok:
-            print(f"❌ Trajet {VILLE_DEPART} → {VILLE_ARRIVEE} non trouvé pour {DATE_CIBLE}")
+            print("❌ Trajet non trouvé")
             return False
+
         time.sleep(1)
 
         # 5️⃣ NEXT BUTTONS
@@ -188,7 +185,8 @@ def envoyer_email(cabine):
         msg["To"] = dest
         msg["Subject"] = "🚢 CTN – CABINE DISPONIBLE"
 
-        body = f"""Cabine disponible : {cabine}
+        body = f"""
+Cabine disponible : {cabine}
 Date : {DATE_CIBLE}
 Lien : {URL_CTN}
 """
