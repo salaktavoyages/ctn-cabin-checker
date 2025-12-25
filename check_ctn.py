@@ -139,6 +139,83 @@ def verifier_ctn():
 
     finally:
         driver.quit()
+ # 5️⃣ AJOUT ADULTE (CORRIGÉ — SANS click.delegate)
+        driver.execute_script("""
+            const rows = Array.from(document.querySelectorAll('booking-row-amount'));
+            if (rows.length > 0) {
+                const spans = rows[0].querySelectorAll('span');
+                if (spans.length > 0) spans[0].click();
+            }
+        """)
+        time.sleep(1)
+
+        # NEXT x4
+        for _ in range(4):
+            driver.execute_script("""
+                Array.from(document.querySelectorAll('button'))
+                  .find(b => b.innerText.includes('NEXT') || b.innerText.includes('SUIVANT'))
+                  ?.click();
+            """)
+            time.sleep(1)
+
+        # 6️⃣ CABINES
+        cabine = driver.execute_script(f"""
+            const cibles = ["{NOM_CABINE_CIBLE_1}", "{NOM_CABINE_CIBLE_2}"];
+            const blocs = Array.from(document.querySelectorAll('cabin-resources'));
+
+            for (let nom of cibles) {{
+                const b = blocs.find(x => x.innerText.includes(nom));
+                if (b) {{
+                    const ok = b.querySelector('span.text-available');
+                    if (ok) return nom;
+                }}
+            }}
+            return null;
+        """)
+
+        if cabine:
+            print(f"🟢 CABINE DISPONIBLE : {cabine}")
+            return cabine
+
+        print("🔴 Aucune cabine disponible")
+        return False
+
+    except Exception as e:
+        print(f"⚠️ Erreur système : {e}")
+        return False
+
+    finally:
+        if driver:
+            driver.quit()
+
+
+# =========================================================
+# EMAIL
+# =========================================================
+
+def envoyer_email(nom_cabine):
+    server = smtplib.SMTP("smtp.gmail.com", 587)
+    server.starttls()
+    server.login(EMAIL_EXPEDITEUR, MOT_DE_PASSE_EMAIL)
+
+    for dest in EMAILS_DESTINATAIRES:
+        msg = MIMEMultipart()
+        msg["From"] = EMAIL_EXPEDITEUR
+        msg["To"] = dest
+        msg["Subject"] = "🟢 ALERTE CTN – CABINE DISPONIBLE"
+
+        body = f"""
+Cabine disponible !
+
+Nom : {nom_cabine}
+Date : {DATE_CIBLE}
+Lien : {URL_CTN}
+"""
+        msg.attach(MIMEText(body, "plain", "utf-8"))
+        server.sendmail(EMAIL_EXPEDITEUR, dest, msg.as_string())
+
+    server.quit()
+    print("📧 Emails envoyés")
 
 # ==================================================
 # MAIN
