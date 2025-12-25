@@ -72,7 +72,7 @@ def verifier_ctn():
         # 2️⃣ PAYS (Utilisation de PAYS_DEP)
         # On essaie de cliquer directement sur l'élément qui contient la valeur
         ok_pays = driver.execute_script(f"""
-            const selector = 'input[value="{PAYS_DEP}"]';
+            const selector = 'input[value='{PAYS_DEP}']';
             const input = document.querySelector(selector);
             if (input) {{ 
                 input.click(); 
