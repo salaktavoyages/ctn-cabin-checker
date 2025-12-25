@@ -105,7 +105,7 @@ def verifier_ctn():
 
             const villeDep = normalize(arguments[0]);
             const villeArr = normalize(arguments[1]);
-            const dateCible = arguments[2];
+            
 
             const labels = [...document.querySelectorAll('label')];
 
@@ -113,14 +113,14 @@ def verifier_ctn():
                 const txt = normalize(l.innerText);
                 if (txt.includes(villeDep)
                     && txt.includes(villeArr)
-                    && txt.includes(dateCible)) {
+                    ) {
 
                     l.querySelector('input[type=radio]')?.click();
                     return true;
                 }
             }
             return false;
-        """, VILLE_DEPART, VILLE_ARRIVEE, DATE_CIBLE)
+        """, VILLE_DEPART, VILLE_ARRIVEE)
 
         if not ok:
             print(f"❌ Trajet {VILLE_DEPART} → {VILLE_ARRIVEE} non trouvé pour {DATE_CIBLE}")
