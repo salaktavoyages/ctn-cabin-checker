@@ -140,7 +140,7 @@ def envoyer_email(cabine):
         server.login(EMAIL_EXPEDITEUR, MOT_DE_PASSE_EMAIL)
         for dest in EMAILS_DESTINATAIRES:
             msg = MIMEMultipart()
-            msg['Subject'] = "🟢 ALERTE CTN DISPONIBLE Cabin {VILLE_ARRIVEE}\n Date : {DATE_CIBLE} "
+            msg['Subject'] = f"🟢 ALERTE CTN DISPONIBLE Cabin {VILLE_ARRIVEE} | Date : {DATE_CIBLE}"
             msg.attach(MIMEText(f"Cabine trouvée : {cabine}\nDate : {DATE_CIBLE}\nLien : {URL_CTN}", 'plain'))
             server.sendmail(EMAIL_EXPEDITEUR, dest, msg.as_string())
         server.quit()
