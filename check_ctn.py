@@ -20,7 +20,8 @@ JOUR_CIBLE = "01"
 MOIS_EN = "Jul"
 ANNEE_CIBLE = "2026"
 
-VILLE_ARRIVEE = "TUNIS - GENES"
+VILLE_DEPART = "TUNIS"
+VILLE_ARRIVEE = "GENES"
 PAYS_DEP = "TUN"
 
 NOM_CABINE_CIBLE_1 = "Cabine avec Sanitaires Privés- 4 lits- avec Hublot"
@@ -65,7 +66,7 @@ def verifier_ctn():
         """)
         time.sleep(1)
 
-        # 2️⃣ PAYS
+        # 2️⃣ PAYS DE DÉPART
         ok = driver.execute_script("""
             const input = document.querySelector('input[value="TUN"]');
             if (input) {
@@ -75,12 +76,12 @@ def verifier_ctn():
             return false;
         """)
         if not ok:
-            print("❌ Pays non trouvé")
+            print("❌ Pays de départ non trouvé")
             return False
 
         time.sleep(1)
 
-        # 3️⃣ DATE - ANNÉE
+        # 3️⃣ DATE – ANNÉE
         driver.execute_script("""
             const y = Array.from(document.querySelectorAll('div.bookit-selectable'))
                 .find(d => d.innerText.trim() === arguments[0]);
@@ -88,7 +89,7 @@ def verifier_ctn():
         """, ANNEE_CIBLE)
         time.sleep(1)
 
-        # 3️⃣ DATE - MOIS
+        # 3️⃣ DATE – MOIS
         driver.execute_script("""
             const m = Array.from(document.querySelectorAll('div.bookit-selectable'))
                 .find(d => d.innerText.trim() === arguments[0]);
@@ -96,7 +97,7 @@ def verifier_ctn():
         """, MOIS_EN)
         time.sleep(1)
 
-        # 3️⃣ DATE - JOUR
+        # 3️⃣ DATE – JOUR
         driver.execute_script("""
             const d = Array.from(document.querySelectorAll('td.bookit-calendar-selectable div'))
                 .find(x => x.innerText.trim() === arguments[0]);
@@ -104,13 +105,35 @@ def verifier_ctn():
         """, JOUR_CIBLE)
         time.sleep(2)
 
-        # 4️⃣ TRAJET
+        # 4️⃣ TRAJET (MATCHES EXACT DOM STRUCTURE)
         ok = driver.execute_script("""
+            function normalize(txt) {
+                return txt
+                    .toLowerCase()
+                    .replace(/\\s+/g, ' ')
+                    .replace('é','e')
+                    .replace('è','e')
+                    .replace('à','a')
+                    .replace('–','-');
+            }
+
+            const dateCible = arguments[0];
+            const villeDep = normalize(arguments[1]);
+            const villeArr = normalize(arguments[2]);
+
             const labels = Array.from(document.querySelectorAll('label'));
-            const target = labels.find(l =>
-                l.innerText.includes(arguments[0]) &&
-                l.innerText.toLowerCase().includes(arguments[1])
-            );
+
+            const target = labels.find(label => {
+                const routeDiv = label.querySelector('div.col-1 div');
+                if (!routeDiv) return false;
+
+                const routeText = normalize(routeDiv.innerText);
+                const fullText = normalize(label.innerText);
+
+                return routeText.includes(villeDep)
+                    && routeText.includes(villeArr)
+                    && fullText.includes(dateCible);
+            });
 
             if (target) {
                 const radio = target.querySelector('input[type="radio"]');
@@ -120,10 +143,10 @@ def verifier_ctn():
                 }
             }
             return false;
-        """, DATE_CIBLE, VILLE_ARRIVEE.lower())
+        """, DATE_CIBLE, VILLE_DEPART, VILLE_ARRIVEE)
 
         if not ok:
-            print("❌ Trajet non trouvé")
+            print(f"❌ Trajet {VILLE_DEPART} → {VILLE_ARRIVEE} non trouvé pour {DATE_CIBLE}")
             return False
 
         time.sleep(1)
@@ -185,8 +208,7 @@ def envoyer_email(cabine):
         msg["To"] = dest
         msg["Subject"] = "🚢 CTN – CABINE DISPONIBLE"
 
-        body = f"""
-Cabine disponible : {cabine}
+        body = f"""Cabine disponible : {cabine}
 Date : {DATE_CIBLE}
 Lien : {URL_CTN}
 """
