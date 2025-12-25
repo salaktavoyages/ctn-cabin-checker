@@ -1,14 +1,18 @@
 # -*- coding: utf-8 -*-
+
 import time
+import os
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
 # ==================================================
 # CONFIGURATION
 # ==================================================
+
 URL_CTN = "https://tunisiaferries.ctn.com.tn/#/book"
 
 DATE_CIBLE = "01/07/2026"
@@ -20,17 +24,19 @@ VILLE_DEPART = "TUN"
 VILLE_ARRIVEE = "GENES"
 PAYS_DEP = "TUN"
 
-EMAIL_EXPEDITEUR = "salakta.voyages@gmail.com"
-MOT_DE_PASSE_EMAIL = MOT_DE_PASSE_EMAIL = os.getenv("EMAIL_PASSWORD")
-EMAILS_DESTINATAIRES = ["salakta.voyages@gmail.com"]
+# --- ADDED CONFIGURATION ---
+NOM_CABINE_CIBLE_1 = "EXTERIEURE" # Replace with actual cabin name
+NOM_CABINE_CIBLE_2 = "INTERIEURE" # Replace with actual cabin name
+# Use a Google App Password, not your regular password
+MOT_DE_PASSE_EMAIL = "your-app-password-here" 
 
-# Cabine cible
-NOM_CABINE_CIBLE_1 = "Cabine avec Sanitaires Privés- 4 lits- avec Hublot"
-NOM_CABINE_CIBLE_2 = "Cabine avec Sanitaires Privé-4 lits - Sans Hublot"
+EMAIL_EXPEDITEUR = "salakta.voyages@gmail.com"
+EMAILS_DESTINATAIRES = ["salakta.voyages@gmail.com"]
 
 # ==================================================
 # DRIVER
 # ==================================================
+
 def configurer_driver():
     options = Options()
     options.add_argument("--headless=new")
@@ -42,6 +48,7 @@ def configurer_driver():
 # ==================================================
 # MAIN CHECK
 # ==================================================
+
 def verifier_ctn():
     driver = configurer_driver()
     try:
@@ -49,7 +56,7 @@ def verifier_ctn():
         driver.get(URL_CTN)
         time.sleep(4)
 
-        # ALLER SIMPLE
+        # 1️⃣ ALLER SIMPLE
         driver.execute_script("""
             [...document.querySelectorAll('label,span')]
             .find(e => e.innerText.includes('Aller simple') || e.innerText.includes('One way'))
@@ -57,13 +64,13 @@ def verifier_ctn():
         """)
         time.sleep(1)
 
-        # PAYS DE DEPART
-        driver.execute_script(f"""
-            document.querySelector('input[value="{PAYS_DEP}"]')?.click();
+        # 2️⃣ PAYS DE DEPART
+        driver.execute_script("""
+            document.querySelector('input[value="TUN"]')?.click();
         """)
         time.sleep(1)
 
-        # ANNEE
+        # 3️⃣ DATE SELECTION (ANNEE, MOIS, JOUR)
         driver.execute_script("""
             [...document.querySelectorAll('div.bookit-selectable')]
             .find(e => e.innerText.trim() === arguments[0])
@@ -71,7 +78,6 @@ def verifier_ctn():
         """, ANNEE_CIBLE)
         time.sleep(1)
 
-        # MOIS
         driver.execute_script("""
             [...document.querySelectorAll('div.bookit-selectable')]
             .find(e => e.innerText.trim() === arguments[0])
@@ -79,7 +85,6 @@ def verifier_ctn():
         """, MOIS_EN)
         time.sleep(1)
 
-        # JOUR
         driver.execute_script("""
             [...document.querySelectorAll('td.bookit-calendar-selectable div')]
             .find(e => e.innerText.trim() === arguments[0])
@@ -87,38 +92,39 @@ def verifier_ctn():
         """, JOUR_CIBLE)
         time.sleep(5)
 
-        # ==================================================
-        # TRAJET CHECK
-        # ==================================================
+        # 4️⃣ TRAJET CHECK
         ok = driver.execute_script("""
             function normalize(t) {
                 if (!t) return "";
                 return t.toLowerCase()
-                        .replace(/[éèê]/g,'e')
-                        .replace(/[àâ]/g,'a')
-                        .replace(/[^a-z0-9]/g, ' ')
-                        .replace(/\s+/g, ' ')
-                        .trim();
+                    .replace(/[éèê]/g,'e')
+                    .replace(/[àâ]/g,'a')
+                    .replace(/[^a-z0-9]/g, ' ')
+                    .replace(/\s+/g, ' ')
+                    .trim();
             }
-            const dep = normalize(arguments[0]);
-            const arr = normalize(arguments[1]);
+            const vArr = normalize(arguments[0]);
             const labels = [...document.querySelectorAll('label')];
             for (const l of labels) {
                 const rowText = normalize(l.innerText);
-                if (rowText.includes(dep) && rowText.includes(arr)) {
+                if (rowText.includes(vArr)) {
                     const radio = l.querySelector('input[type="radio"]');
-                    if (radio) { radio.click(); return true; }
+                    if (radio) {
+                        radio.click();
+                        return true;
+                    }
                 }
             }
             return false;
-        """, VILLE_DEPART, VILLE_ARRIVEE)
+        """, VILLE_ARRIVEE)
 
         if not ok:
-            print(f"❌ Trajet {VILLE_DEPART} → {VILLE_ARRIVEE} non trouvé pour {DATE_CIBLE}")
+            print(f"❌ Trajet {VILLE_DEPART} → {VILLE_ARRIVEE} non trouvé")
             return False
-        print("✅ Trajet trouvé et sélectionné")
 
-        # AJOUT ADULTE
+        print("✅ Trajet trouvé et sélectionné")
+        
+        # 5️⃣ AJOUT ADULTE
         driver.execute_script("""
             const rows = Array.from(document.querySelectorAll('booking-row-amount'));
             if (rows.length > 0) {
@@ -128,24 +134,25 @@ def verifier_ctn():
         """)
         time.sleep(1)
 
-        # NEXT x4
-        for _ in range(4):
+        # 6️⃣ NEXT STEP NAVIGATION (Until Cabins)
+        for i in range(4):
             driver.execute_script("""
                 Array.from(document.querySelectorAll('button'))
-                    .find(b => b.innerText.includes('NEXT') || b.innerText.includes('SUIVANT'))
-                    ?.click();
+                  .find(b => b.innerText.includes('NEXT') || b.innerText.includes('SUIVANT'))
+                  ?.click();
             """)
-            time.sleep(1)
+            time.sleep(1.5)
 
-        # CABINES
+        # 7️⃣ CABINE CHECK
         cabine = driver.execute_script(f"""
             const cibles = ["{NOM_CABINE_CIBLE_1}", "{NOM_CABINE_CIBLE_2}"];
             const blocs = Array.from(document.querySelectorAll('cabin-resources'));
+
             for (let nom of cibles) {{
                 const b = blocs.find(x => x.innerText.includes(nom));
                 if (b) {{
-                    const ok = b.querySelector('span.text-available');
-                    if (ok) return nom;
+                    const available = b.querySelector('span.text-available');
+                    if (available) return nom;
                 }}
             }}
             return null;
@@ -153,14 +160,13 @@ def verifier_ctn():
 
         if cabine:
             print(f"🟢 CABINE DISPONIBLE : {cabine}")
-            envoyer_email(cabine)
             return cabine
 
         print("🔴 Aucune cabine disponible")
         return False
 
     except Exception as e:
-        print(f"⚠️ ERREUR : {e}")
+        print(f"⚠️ ERREUR SYSTÈME : {e}")
         return False
     finally:
         driver.quit()
@@ -168,31 +174,33 @@ def verifier_ctn():
 # =========================================================
 # EMAIL
 # =========================================================
+
 def envoyer_email(nom_cabine):
-    server = smtplib.SMTP("smtp.gmail.com", 587)
-    server.starttls()
-    server.login(EMAIL_EXPEDITEUR, MOT_DE_PASSE_EMAIL)
+    try:
+        server = smtplib.SMTP("smtp.gmail.com", 587)
+        server.starttls()
+        server.login(EMAIL_EXPEDITEUR, MOT_DE_PASSE_EMAIL)
 
-    for dest in EMAILS_DESTINATAIRES:
-        msg = MIMEMultipart()
-        msg["From"] = EMAIL_EXPEDITEUR
-        msg["To"] = dest
-        msg["Subject"] = "🟢 ALERTE CTN – CABINE DISPONIBLE"
-        body = f"""
-Cabine disponible !
+        for dest in EMAILS_DESTINATAIRES:
+            msg = MIMEMultipart()
+            msg["From"] = EMAIL_EXPEDITEUR
+            msg["To"] = dest
+            msg["Subject"] = "🟢 ALERTE CTN – CABINE DISPONIBLE"
 
-Nom : {nom_cabine}
-Date : {DATE_CIBLE}
-Lien : {URL_CTN}
-"""
-        msg.attach(MIMEText(body, "plain", "utf-8"))
-        server.sendmail(EMAIL_EXPEDITEUR, dest, msg.as_string())
+            body = f"Cabine disponible !\n\nNom : {nom_cabine}\nDate : {DATE_CIBLE}\nLien : {URL_CTN}"
+            msg.attach(MIMEText(body, "plain", "utf-8"))
+            server.sendmail(EMAIL_EXPEDITEUR, dest, msg.as_string())
 
-    server.quit()
-    print("📧 Emails envoyés")
+        server.quit()
+        print("📧 Emails envoyés")
+    except Exception as e:
+        print(f"❌ Erreur envoi email : {e}")
 
 # ==================================================
 # MAIN
 # ==================================================
+
 if __name__ == "__main__":
-    verifier_ctn()
+    resultat = verifier_ctn()
+    if resultat:
+        envoyer_email(resultat)
