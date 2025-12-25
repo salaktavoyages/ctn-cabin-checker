@@ -15,7 +15,7 @@ from selenium.webdriver.chrome.options import Options
 URL_CTN = "https://tunisiaferries.ctn.com.tn/#/book"
 
 DATE_CIBLE = "30/01/2026"
-JOUR_CIBLE = "01"
+JOUR_CIBLE = "30"
 MOIS_EN = "Jan"
 ANNEE_CIBLE = "2026"
 VILLE_ARRIVEE = "Genes"
