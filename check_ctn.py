@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import time
 import os
+import time
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -9,114 +9,151 @@ from email.mime.text import MIMEText
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
-# ==================================================
+
+# =========================================================
 # CONFIGURATION
-# ==================================================
+# =========================================================
 
 URL_CTN = "https://tunisiaferries.ctn.com.tn/#/book"
 
 DATE_CIBLE = "01/07/2026"
-JOUR_CIBLE = "01"
+JOUR_CIBLE = "07"
 MOIS_EN = "Jul"
 ANNEE_CIBLE = "2026"
-
-VILLE_DEPART = "TUN"
-VILLE_ARRIVEE = "GENES"
+VILLE_ARRIVEE = "Genes"
 PAYS_DEP = "TUN"
 
-# --- ADDED CONFIGURATION ---
-NOM_CABINE_CIBLE_1 = "Cabine avec Sanitaires Privé-4 lits - Sans Hublot" # Replace with actual cabin name
-NOM_CABINE_CIBLE_2 = "Cabine avec Sanitaires Privés- 4 lits- avec Hublot" # Replace with actual cabin name
-# Use a Google App Password, not your regular password
+
+NOM_CABINE_CIBLE_1 = "Cabine avec Sanitaires Privés- 4 lits- avec Hublot"
+NOM_CABINE_CIBLE_2 = "Cabine avec Sanitaires Privé-4 lits - Sans Hublot"
+
+EMAIL_EXPEDITEUR = os.environ["EMAIL_EXPEDITEUR"]
 MOT_DE_PASSE_EMAIL = os.environ["MOT_DE_PASSE_EMAIL"]
 
-EMAIL_EXPEDITEUR = "salakta.voyages@gmail.com"
-EMAILS_DESTINATAIRES = ["salakta.voyages@gmail.com"]
+EMAILS_DESTINATAIRES = [
+    "salakta.voyages@gmail.com",
+    "benattiasaif88@gmail.com",
+    "ajmi200005@gmail.com"
+]
 
-# ==================================================
-# DRIVER
-# ==================================================
+
+# =========================================================
+# SELENIUM
+# =========================================================
 
 def configurer_driver():
-    options = Options()
-    options.add_argument("--headless=new")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--window-size=1920,1080")
-    return webdriver.Chrome(options=options)
+    chrome_options = Options()
+    chrome_options.add_argument("--headless=new")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--window-size=1920,1080")
+    chrome_options.add_argument("--lang=fr-FR")
+    return webdriver.Chrome(options=chrome_options)
 
-# ==================================================
-# MAIN CHECK
-# ==================================================
+
+# =========================================================
+# LOGIQUE CTN
+# =========================================================
 
 def verifier_ctn():
-    driver = configurer_driver()
+    driver = None
     try:
-        print("🚢 CTN check started")
+        print(f"[{time.strftime('%H:%M:%S')}] Démarrage vérification CTN")
+        driver = configurer_driver()
         driver.get(URL_CTN)
         time.sleep(4)
 
         # 1️⃣ ALLER SIMPLE
         driver.execute_script("""
-            [...document.querySelectorAll('label,span')]
-            .find(e => e.innerText.includes('Aller simple') || e.innerText.includes('One way'))
-            ?.click();
+            Array.from(document.querySelectorAll('label, span'))
+              .find(e => e.innerText.includes('Aller simple') || e.innerText.includes('One way'))
+              ?.click();
         """)
         time.sleep(1)
 
-        # 2️⃣ PAYS DE DEPART
-        driver.execute_script("""
-            document.querySelector('input[value="TUN"]')?.click();
-        """)
-        time.sleep(1)
-
-        # 3️⃣ DATE SELECTION (ANNEE, MOIS, JOUR)
-        driver.execute_script("""
-            [...document.querySelectorAll('div.bookit-selectable')]
-            .find(e => e.innerText.trim() === arguments[0])
-            ?.click();
-        """, ANNEE_CIBLE)
-        time.sleep(1)
-
-        driver.execute_script("""
-            [...document.querySelectorAll('div.bookit-selectable')]
-            .find(e => e.innerText.trim() === arguments[0])
-            ?.click();
-        """, MOIS_EN)
-        time.sleep(1)
-
-        driver.execute_script("""
-            [...document.querySelectorAll('td.bookit-calendar-selectable div')]
-            .find(e => e.innerText.trim() === arguments[0])
-            ?.click();
-        """, JOUR_CIBLE)
-        time.sleep(5)
-
-        # 4️⃣ TRAJET CHECK
-        ok = driver.execute_script("""
-
-            const vArr =arguments[0];
-            const labels = [...document.querySelectorAll('label')];
-            for (const l of labels) {
-                const rowText =l.innerText;
-                if (rowText.includes(vArr)) {
-                    const radio = l.querySelector('input[type="radio"]');
-                    if (radio) {
-                        radio.click();
-                        return true;
-                    }
-                }
-            }
+        # 2️⃣ PAYS
+        ok_pays = driver.execute_script("""
+            const input = document.querySelector('input[value="TUN"]');
+            if (input) { input.click(); return true; }
             return false;
-        """, VILLE_ARRIVEE)
-
-        if not ok:
-            print(f"❌ Trajet {VILLE_DEPART} → {VILLE_ARRIVEE} non trouvé")
+        """)
+        if not ok_pays:
+            print("❌ Pays non trouvé")
             return False
+        time.sleep(1)
 
-        print("✅ Trajet trouvé et sélectionné")
-        
-        # 5️⃣ AJOUT ADULTE
+        # 3️⃣ DATE — ANNÉE
+        driver.execute_script("""
+            Array.from(document.querySelectorAll('.calendar-container label, .calendar-container div'))
+              .find(e => e.innerText.includes('Year') || e.innerText.includes('Année'))
+              ?.click();
+        """)
+        time.sleep(1)
+
+        if not driver.execute_script(f"""
+            const y = Array.from(document.querySelectorAll('div.bookit-selectable'))
+              .find(x => x.innerText.trim() === '{ANNEE_CIBLE}');
+            if (y) {{ y.click(); return true; }}
+            return false;
+        """):
+            print("❌ Année non trouvée")
+            return False
+        time.sleep(1)
+
+        # MOIS
+        driver.execute_script("""
+            Array.from(document.querySelectorAll('.calendar-container label, .calendar-container div'))
+              .find(e => e.innerText.includes('Month') || e.innerText.includes('Mois'))
+              ?.click();
+        """)
+        time.sleep(1)
+
+        if not driver.execute_script(f"""
+            const m = Array.from(document.querySelectorAll('div.bookit-selectable'))
+              .find(x => x.innerText.trim() === '{MOIS_EN}');
+            if (m) {{ m.click(); return true; }}
+            return false;
+        """):
+            print("❌ Mois non trouvé")
+            return False
+        time.sleep(1)
+
+        # JOUR
+        driver.execute_script("""
+            Array.from(document.querySelectorAll('.calendar-container label, .calendar-container div'))
+              .find(e => e.innerText.includes('Day') || e.innerText.includes('Jour'))
+              ?.click();
+        """)
+        time.sleep(1)
+
+        if not driver.execute_script(f"""
+            const d = Array.from(document.querySelectorAll('td.bookit-calendar-selectable div'))
+              .find(x => x.innerText.trim() === '{JOUR_CIBLE}');
+            if (d) {{ d.click(); return true; }}
+            return false;
+        """):
+            print("❌ Jour non trouvé")
+            return False
+        time.sleep(2)
+
+        # 4️⃣ TRAJET
+        if not driver.execute_script(f"""
+            const labels = Array.from(document.querySelectorAll('label'));
+            const t = labels.find(l =>
+                l.innerText.includes('{DATE_CIBLE}') &&
+                l.innerText.toLowerCase().includes('{VILLE_ARRIVEE.lower()}')
+            );
+            if (t) {{
+                const r = t.querySelector('input[type="radio"]');
+                if (r) {{ r.click(); return true; }}
+            }}
+            return false;
+        """):
+            print("❌ Trajet non trouvé")
+            return False
+        time.sleep(1)
+
+        # 5️⃣ AJOUT ADULTE (CORRIGÉ — SANS click.delegate)
         driver.execute_script("""
             const rows = Array.from(document.querySelectorAll('booking-row-amount'));
             if (rows.length > 0) {
@@ -126,16 +163,16 @@ def verifier_ctn():
         """)
         time.sleep(1)
 
-        # 6️⃣ NEXT STEP NAVIGATION (Until Cabins)
-        for i in range(4):
+        # NEXT x4
+        for _ in range(4):
             driver.execute_script("""
                 Array.from(document.querySelectorAll('button'))
                   .find(b => b.innerText.includes('NEXT') || b.innerText.includes('SUIVANT'))
                   ?.click();
             """)
-            time.sleep(1.5)
+            time.sleep(1)
 
-        # 7️⃣ CABINE CHECK
+        # 6️⃣ CABINES
         cabine = driver.execute_script(f"""
             const cibles = ["{NOM_CABINE_CIBLE_1}", "{NOM_CABINE_CIBLE_2}"];
             const blocs = Array.from(document.querySelectorAll('cabin-resources'));
@@ -143,8 +180,8 @@ def verifier_ctn():
             for (let nom of cibles) {{
                 const b = blocs.find(x => x.innerText.includes(nom));
                 if (b) {{
-                    const available = b.querySelector('span.text-available');
-                    if (available) return nom;
+                    const ok = b.querySelector('span.text-available');
+                    if (ok) return nom;
                 }}
             }}
             return null;
@@ -158,41 +195,48 @@ def verifier_ctn():
         return False
 
     except Exception as e:
-        print(f"⚠️ ERREUR SYSTÈME : {e}")
+        print(f"⚠️ Erreur système : {e}")
         return False
+
     finally:
-        driver.quit()
+        if driver:
+            driver.quit()
+
 
 # =========================================================
 # EMAIL
 # =========================================================
 
 def envoyer_email(nom_cabine):
-    try:
-        server = smtplib.SMTP("smtp.gmail.com", 587)
-        server.starttls()
-        server.login(EMAIL_EXPEDITEUR, MOT_DE_PASSE_EMAIL)
+    server = smtplib.SMTP("smtp.gmail.com", 587)
+    server.starttls()
+    server.login(EMAIL_EXPEDITEUR, MOT_DE_PASSE_EMAIL)
 
-        for dest in EMAILS_DESTINATAIRES:
-            msg = MIMEMultipart()
-            msg["From"] = EMAIL_EXPEDITEUR
-            msg["To"] = dest
-            msg["Subject"] = "🟢 ALERTE CTN – CABINE DISPONIBLE"
+    for dest in EMAILS_DESTINATAIRES:
+        msg = MIMEMultipart()
+        msg["From"] = EMAIL_EXPEDITEUR
+        msg["To"] = dest
+        msg["Subject"] = "🟢 ALERTE CTN – CABINE DISPONIBLE"
 
-            body = f"Cabine disponible !\n\nNom : {nom_cabine}\nDate : {DATE_CIBLE}\nLien : {URL_CTN}"
-            msg.attach(MIMEText(body, "plain", "utf-8"))
-            server.sendmail(EMAIL_EXPEDITEUR, dest, msg.as_string())
+        body = f"""
+Cabine disponible !
 
-        server.quit()
-        print("📧 Emails envoyés")
-    except Exception as e:
-        print(f"❌ Erreur envoi email : {e}")
+Nom : {nom_cabine}
+Date : {DATE_CIBLE}
+Lien : {URL_CTN}
+"""
+        msg.attach(MIMEText(body, "plain", "utf-8"))
+        server.sendmail(EMAIL_EXPEDITEUR, dest, msg.as_string())
 
-# ==================================================
+    server.quit()
+    print("📧 Emails envoyés")
+
+
+# =========================================================
 # MAIN
-# ==================================================
+# =========================================================
 
 if __name__ == "__main__":
-    resultat = verifier_ctn()
-    if resultat:
-        envoyer_email(resultat)
+    cabine = verifier_ctn()
+    if cabine:
+        envoyer_email(cabine)
