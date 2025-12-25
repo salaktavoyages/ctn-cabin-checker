@@ -16,7 +16,7 @@ URL_CTN = "https://tunisiaferries.ctn.com.tn/#/book"
 
 DATE_CIBLE = "01/07/2026"
 JOUR_CIBLE = "01"
-MOIS_EN = "JUL"
+MOIS_EN = "Jul"
 ANNEE_CIBLE = "2026"
 VILLE_ARRIVEE = "GENES"
 PAYS_DEP = "TUN"
