@@ -20,7 +20,7 @@ JOUR_CIBLE = "01"
 MOIS_EN = "Jul"
 ANNEE_CIBLE = "2026"
 
-VILLE_DEPART = "TUNIS"
+VILLE_DEPART = "TUN"
 VILLE_ARRIVEE = "GENES"
 PAYS_DEP = "TUN"
 
@@ -105,8 +105,8 @@ def verifier_ctn():
                     .trim();
             }
 
-            const vDep = normalize(arguments[0]); 
-            const vArr = normalize(arguments[1]);
+           
+            const vArr = normalize(arguments[0]);
 
             // Find all labels that represent trip rows
             const labels = [...document.querySelectorAll('label')];
@@ -115,7 +115,7 @@ def verifier_ctn():
                 const rowText = normalize(l.innerText);
                 
                 // Check if BOTH the departure and arrival city are in this row
-                if (rowText.includes(vDep) && rowText.includes(vArr)) {
+                if (rowText.includes(vArr)) {
                     const radio = l.querySelector('input[type="radio"]');
                     if (radio) {
                         radio.click();
