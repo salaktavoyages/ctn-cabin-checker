@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import os
 import time
 import smtplib
@@ -20,9 +18,9 @@ DATE_CIBLE = "28/08/2026"
 JOUR_CIBLE = "28"
 MOIS_EN = "Aug"
 ANNEE_CIBLE = "2026"
-
-VILLE_ARRIVEE = "GENES"
+VILLE_ARRIVEE = "Marseille"
 PAYS_DEP = "TUN"
+
 
 NOM_CABINE_CIBLE_1 = "Cabine avec Sanitaires Privés- 4 lits- avec Hublot"
 NOM_CABINE_CIBLE_2 = "Cabine avec Sanitaires Privé-4 lits - Sans Hublot"
