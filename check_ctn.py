@@ -70,13 +70,13 @@ def verifier_ctn():
         time.sleep(1)
 
         # 2️⃣ PAYS
-        ok_pays = driver.execute_script("""
-            const input = document.querySelector('input[value="TUN"]');
-            if (input) { input.click(); return true; }
+        ok_pays = driver.execute_script(f"""
+            const input = document.querySelector('input[value="{PAYS_DEP}"]');
+            if (input) {{ input.click(); return true; }}
             return false;
         """)
         if not ok_pays:
-            print("❌ Pays non trouvé")
+            print(f"❌ Pays {PAYS_DEP} non trouvé")
             return False
         time.sleep(1)
 
