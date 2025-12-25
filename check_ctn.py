@@ -96,27 +96,31 @@ def verifier_ctn():
 
         ok = driver.execute_script("""
             function normalize(t) {
+                if (!t) return "";
                 return t.toLowerCase()
-                    .replace(/\\s+/g,' ')
                     .replace(/[éèê]/g,'e')
                     .replace(/[àâ]/g,'a')
-                    .replace('–','-');
+                    .replace(/[^a-z0-9]/g, ' ') // Remove dashes/special chars and use spaces
+                    .replace(/\s+/g, ' ')       // Collapse multiple spaces
+                    .trim();
             }
 
-            const villeDep = normalize(arguments[0]);
-            const villeArr = normalize(arguments[1]);
-            
+            const vDep = normalize(arguments[0]); 
+            const vArr = normalize(arguments[1]);
 
+            // Find all labels that represent trip rows
             const labels = [...document.querySelectorAll('label')];
 
             for (const l of labels) {
-                const txt = normalize(l.innerText);
-                if (txt.includes(villeDep)
-                    && txt.includes(villeArr)
-                    ) {
-
-                    l.querySelector('input[type=radio]')?.click();
-                    return true;
+                const rowText = normalize(l.innerText);
+                
+                // Check if BOTH the departure and arrival city are in this row
+                if (rowText.includes(vDep) && rowText.includes(vArr)) {
+                    const radio = l.querySelector('input[type="radio"]');
+                    if (radio) {
+                        radio.click();
+                        return true;
+                    }
                 }
             }
             return false;
