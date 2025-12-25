@@ -25,10 +25,10 @@ VILLE_ARRIVEE = "GENES"
 PAYS_DEP = "TUN"
 
 # --- ADDED CONFIGURATION ---
-NOM_CABINE_CIBLE_1 = "EXTERIEURE" # Replace with actual cabin name
-NOM_CABINE_CIBLE_2 = "INTERIEURE" # Replace with actual cabin name
+NOM_CABINE_CIBLE_1 = "Cabine avec Sanitaires Privé-4 lits - Sans Hublot" # Replace with actual cabin name
+NOM_CABINE_CIBLE_2 = "Cabine avec Sanitaires Privés- 4 lits- avec Hublot" # Replace with actual cabin name
 # Use a Google App Password, not your regular password
-MOT_DE_PASSE_EMAIL = "your-app-password-here" 
+MOT_DE_PASSE_EMAIL = os.environ["MOT_DE_PASSE_EMAIL"]
 
 EMAIL_EXPEDITEUR = "salakta.voyages@gmail.com"
 EMAILS_DESTINATAIRES = ["salakta.voyages@gmail.com"]
@@ -94,19 +94,11 @@ def verifier_ctn():
 
         # 4️⃣ TRAJET CHECK
         ok = driver.execute_script("""
-            function normalize(t) {
-                if (!t) return "";
-                return t.toLowerCase()
-                    .replace(/[éèê]/g,'e')
-                    .replace(/[àâ]/g,'a')
-                    .replace(/[^a-z0-9]/g, ' ')
-                    .replace(/\s+/g, ' ')
-                    .trim();
-            }
-            const vArr = normalize(arguments[0]);
+
+            const vArr =arguments[0];
             const labels = [...document.querySelectorAll('label')];
             for (const l of labels) {
-                const rowText = normalize(l.innerText);
+                const rowText =l.innerText;
                 if (rowText.includes(vArr)) {
                     const radio = l.querySelector('input[type="radio"]');
                     if (radio) {
