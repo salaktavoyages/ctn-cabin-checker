@@ -88,7 +88,7 @@ def verifier_ctn():
             .find(e => e.innerText.trim() === arguments[0])
             ?.click();
         """, JOUR_CIBLE)
-        time.sleep(2)
+        time.sleep(5)
 
         # ==================================================
         # TRAJET CHECK (FIXED & ROBUST)
