@@ -9,9 +9,9 @@ from selenium.webdriver.chrome.options import Options
 
 # --- CONFIGURATION (Synchronisée) ---
 URL_CTN = "https://tunisiaferries.ctn.com.tn/#/book"
-DATE_CIBLE = "13/02/2026"
-JOUR_CIBLE = "13"
-MOIS_EN = "Feb"
+DATE_CIBLE = "28/08/2026"
+JOUR_CIBLE = "28"
+MOIS_EN = "Aug"
 ANNEE_CIBLE = "2026"
 VILLE_ARRIVEE = "GENES"
 PAYS_DEP = "TUN"
@@ -140,7 +140,7 @@ def envoyer_email(cabine):
         server.login(EMAIL_EXPEDITEUR, MOT_DE_PASSE_EMAIL)
         for dest in EMAILS_DESTINATAIRES:
             msg = MIMEMultipart()
-            msg['Subject'] = "🟢 ALERTE CTN DISPONIBLE"
+            msg['Subject'] = "🟢 ALERTE CTN DISPONIBLE Cabin {VILLE_ARRIVEE}\n Date : {DATE_CIBLE} "
             msg.attach(MIMEText(f"Cabine trouvée : {cabine}\nDate : {DATE_CIBLE}\nLien : {URL_CTN}", 'plain'))
             server.sendmail(EMAIL_EXPEDITEUR, dest, msg.as_string())
         server.quit()
