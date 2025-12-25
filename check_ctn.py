@@ -126,14 +126,28 @@ def verifier_ctn():
         """)
         time.sleep(1)
 
-        if not driver.execute_script(f"""
-            const d = Array.from(document.querySelectorAll('td.bookit-calendar-selectable div'))
-              .find(x => x.innerText.trim() === '{JOUR_CIBLE}');
-            if (d) {{ d.click(); return true; }}
+        driver.execute_script("""
+            const tabs = Array.from(document.querySelectorAll('.calendar-container div, .calendar-container label'));
+            const dayTab = tabs.find(t => t.innerText.trim().includes('Day') || t.innerText.trim().includes('Jour'));
+            if (dayTab) dayTab.click();
+        """)
+        time.sleep(1)
+
+        success_day = driver.execute_script(f"""
+            const dayDivs = Array.from(document.querySelectorAll('td.bookit-calendar-selectable div'));
+            const target = dayDivs.find(d => d.innerText.trim() === '{JOUR_CIBLE}');
+            if (target) {{
+                target.click();
+                return true;
+            }}
             return false;
-        """):
-            print("❌ Jour non trouvé")
+        """)
+
+        if not success_day:
+            print(f"❌ Jour {JOUR_CIBLE} non trouvé.")
+            prendre_capture(driver, "ERR_JOUR_INEXISTANT")
             return False
+
         time.sleep(2)
 
         # 4️⃣ TRAJET
